@@ -1,0 +1,281 @@
+# Fluxo de Upgrade – User Stories e Tarefas Técnicas
+
+## Épico 1 – Exibição de planos e status do usuário
+
+### User Story 1.1 – Ver planos disponíveis
+
+**Como** usuário logado
+**Quero** visualizar uma página com todos os planos (Free, Pro, Business)
+**Para** entender as diferenças e decidir se vale a pena fazer upgrade
+
+**Critérios de aceitação:**
+
+* Deve existir uma página acessível via menu (ex.: `/planos` ou “Planos” no header).
+* A página deve exibir 3 cards: **Free**, **Pro**, **Business**.
+* O plano atual do usuário deve estar claramente marcado (ex.: tag “Seu plano atual”).
+* O plano **Pro** deve ter destaque visual (ex.: selo “Recomendado”).
+* Cada card deve exibir:
+
+  * Nome do plano
+  * Descrição curta
+  * Preço
+  * Principais benefícios
+  * Botão de ação (Free: “Ativo” ou “Começar grátis”; Pro: “Assinar Pro”; Business: “Falar com time comercial”).
+
+**Tarefas técnicas:**
+
+* [Front] Criar rota `/planos` (ou equivalente) no frontend.
+* [Front] Implementar componente de listagem de planos com 3 cards.
+* [Back] Incluir no endpoint de perfil do usuário um campo `plano_atual` (`"free"`, `"pro"`, `"business"`).
+* [Front] Destacar visualmente o card correspondente ao `plano_atual`.
+* [Front] Destacar visualmente o card do plano Pro como “Recomendado”.
+
+---
+
+## Épico 2 – Gatilhos de upgrade dentro do produto
+
+### User Story 2.1 – Ver meu consumo de mensagens (barra de progresso)
+
+**Como** usuário Free
+**Quero** ver quantas mensagens já usei no mês
+**Para** saber se estou perto do limite e decidir se faço upgrade
+
+**Critérios de aceitação:**
+
+* A interface deve mostrar algo como: `X de 50 mensagens usadas neste mês`.
+* Esse indicador deve ser visível na tela principal (ex.: topo do chat ou sidebar).
+* Quando `percentual_de_uso < 80%`, a barra/indicador aparece em estado “normal”.
+* Quando `percentual_de_uso >= 80%`, a barra/indicador muda para estado de alerta (ex.: cor de aviso).
+* Opcional: ao passar o mouse (ou tocar), exibir tooltip com sugestão de upgrade.
+
+**Tarefas técnicas:**
+
+* [Back] Implementar contagem de mensagens enviadas por usuário no mês atual.
+* [Back] Criar endpoint (ex.: `GET /usage`) retornando:
+
+  * `limite_mensagens`
+  * `mensagens_usadas`
+  * `percentual_uso`
+* [Front] Criar componente `UsageBadge` / `UsageBar` que:
+
+  * Consome o endpoint `/usage`
+  * Exibe o texto `X de Y mensagens`
+  * Muda o estilo quando `percentual_uso >= 80`
+* [Front] Posicionar o componente em local fixo na UI (ex.: header ou lateral).
+
+---
+
+### User Story 2.2 – Ao tentar usar recurso Pro, ser convidado a fazer upgrade
+
+**Como** usuário Free
+**Quando** eu tentar usar um recurso exclusivo do plano Pro (modelo premium, template avançado etc.)
+**Quero** ser avisado que é recurso Pro e ter opção de fazer upgrade
+
+**Critérios de aceitação:**
+
+* Se o usuário estiver no plano Free (`plano_atual == "free"`) e clicar em:
+
+  * Modelo premium
+  * Template Pro
+  * Qualquer função marcada como “Pro”
+* Deve aparecer um modal informativo com:
+
+  * Título (ex.: “Recurso disponível no plano Pro”)
+  * Lista curta de benefícios do Pro
+  * Botão primário: “Assinar plano Pro”
+  * Botão secundário: “Cancelar” ou “Continuar no Free”
+* O clique em “Assinar plano Pro” deve levar à página de planos ou diretamente à etapa de upgrade.
+
+**Tarefas técnicas:**
+
+* [Front] Em cada feature Pro, verificar `plano_atual` antes de executar a ação.
+* [Front] Se `plano_atual == "free"`, não executar a ação; abrir modal de upgrade.
+* [Front] Criar componente de modal de upgrade reutilizável (ex.: `UpgradeModal`).
+* [Front] Botão “Assinar plano Pro” deve redirecionar para `/planos?from=feature_pro` ou rota específica de upgrade.
+
+---
+
+### User Story 2.3 – Ao atingir o limite do Free, ser bloqueado com convite de upgrade
+
+**Como** usuário Free
+**Quando** eu chegar ao limite de 50 mensagens/mês
+**Quero** entender por que não posso mandar mais mensagens e ver como liberar via upgrade
+
+**Critérios de aceitação:**
+
+* Ao tentar enviar uma mensagem quando o limite mensal já foi atingido:
+
+  * O backend deve recusar a solicitação **antes** de chamar a API de IA.
+  * O backend deve retornar um erro claro (ex.: `HTTP 403` com código `limit_exceeded`).
+* O frontend deve:
+
+  * Interceptar esse erro
+  * Exibir modal/tela com mensagem:
+
+    * “Você atingiu o limite de 50 mensagens do plano Free neste mês.”
+    * Sugestão de upgrade:
+
+      * “Assine o plano Pro para continuar usando sem interrupções.”
+  * Oferecer botão “Assinar plano Pro”.
+
+**Tarefas técnicas:**
+
+* [Back] Implementar a checagem de limite no endpoint de envio de mensagem:
+
+  * Se `mensagens_usadas >= limite_mensagens`, retornar erro `limit_exceeded`.
+* [Front] Criar tratativa para o erro `limit_exceeded`:
+
+  * Exibir modal específico de limite atingido.
+  * Incluir botão “Assinar plano Pro” → rota de upgrade.
+
+---
+
+## Épico 3 – Processo de upgrade e pagamento
+
+### User Story 3.1 – Iniciar processo de upgrade
+
+**Como** usuário Free
+**Quero** clicar em “Assinar Pro” e ver o resumo do plano Pro
+**Para** confirmar que quero seguir com o pagamento
+
+**Critérios de aceitação:**
+
+* Ao clicar em “Assinar Pro”:
+
+  * A aplicação deve levar o usuário para uma tela ou modal com o **resumo do plano Pro**.
+* A tela de resumo deve conter:
+
+  * Nome do plano: “Pro – Profissional”
+  * Preço (ex.: “R$ 39,90/mês – lançamento R$ 29,90/mês”)
+  * Benefícios principais (3 a 5 bullet points)
+  * Limites principais (ex.: “300 mensagens/mês”)
+  * Botões:
+
+    * Primário: “Continuar para pagamento”
+    * Secundário: “Voltar”
+
+**Tarefas técnicas:**
+
+* [Front] Criar componente `PlanReview` para exibir resumo do plano Pro.
+* [Front] Navegação: de qualquer botão “Assinar Pro” → `/planos/pro/confirmacao` ou similar.
+* [Front] Botão “Continuar para pagamento” deve iniciar o fluxo de checkout (chamar backend).
+
+---
+
+### User Story 3.2 – Realizar pagamento do plano Pro
+
+**Como** usuário que decidiu assinar o Pro
+**Quero** preencher meus dados de pagamento em ambiente seguro
+**Para** efetivar a assinatura e liberar o plano Pro
+
+**Critérios de aceitação:**
+
+* O sistema deve integrar com um gateway (ex.: Stripe, Mercado Pago, etc.) para:
+
+  * Criar uma sessão de checkout segura.
+  * Permitir pagamento com cartão/PIX (conforme sua escolha).
+* A tela de pagamento (do gateway) deve mostrar:
+
+  * Nome do plano
+  * Valor mensal
+  * Informação de recorrência (assinatura)
+* Após pagamento aprovado:
+
+  * O gateway deve redirecionar o usuário de volta ao app
+  * O backend deve ter recebido (via webhook) o evento de pagamento aprovado e atualizado o plano do usuário para `pro`.
+
+**Tarefas técnicas:**
+
+* [Back] Criar endpoint `POST /assinatura/iniciar`:
+
+  * Recebe `plano = "pro"` e ID do usuário autenticado.
+  * Cria sessão de checkout no gateway.
+  * Retorna a `checkout_url` para o frontend.
+* [Front] Ao clicar “Continuar para pagamento” em `PlanReview`:
+
+  * Chamar `POST /assinatura/iniciar`.
+  * Redirecionar o usuário para `checkout_url`.
+* [Back] Implementar endpoint de webhook para o gateway (ex.: `/webhooks/gateway`):
+
+  * Receber confirmação de pagamento.
+  * Validar assinatura/evento.
+  * Atualizar registro do usuário: `plano_atual = "pro"`, `data_inicio_assinatura`, `data_proxima_cobranca`, etc.
+
+---
+
+### User Story 3.3 – Ver confirmação de upgrade
+
+**Como** usuário que acabou de pagar
+**Quero** ver uma tela de confirmação clara
+**Para** saber que o plano Pro já está ativo e o que posso fazer a seguir
+
+**Critérios de aceitação:**
+
+* Após o retorno do checkout do gateway:
+
+  * O sistema deve verificar o `plano_atual` do usuário.
+  * Se `plano_atual == "pro"`:
+
+    * Exibir tela de boas-vindas ao Pro.
+* A tela de boas-vindas deve conter:
+
+  * Título (ex.: “Bem-vindo ao plano Pro!”)
+  * Mensagem de confirmação
+  * 3 chamadas de ação (ex.):
+
+    * “Use um modelo premium na sua próxima conversa”
+    * “Crie pastas/projetos para organizar seus clientes”
+    * “Explore templates avançados de marketing”
+  * Botão principal: “Começar a usar agora” (leva ao chat principal).
+
+**Tarefas técnicas:**
+
+* [Back] Criar endpoint `GET /assinatura/status`:
+
+  * Retornar `plano_atual` e dados básicos de assinatura.
+* [Front] Ao retornar do checkout (via URL de retorno do gateway):
+
+  * Chamar `/assinatura/status`.
+  * Se `plano_atual == "pro"`, renderizar tela de boas-vindas Pro.
+* [Front] No clique de “Começar a usar agora”:
+
+  * Redirecionar para `/app/chat` ou caminho principal da aplicação.
+
+---
+
+## Épico 4 – UX pós-upgrade (uso diário do Pro)
+
+### User Story 4.1 – Ver benefícios do Pro aplicados na interface
+
+**Como** usuário Pro
+**Quero** ver que meu plano foi atualizado (rótulo, limites maiores, acesso a recursos)
+**Para** ter certeza de que minha assinatura está ativa
+
+**Critérios de aceitação:**
+
+* A interface deve indicar claramente que o usuário está no plano Pro:
+
+  * Ex.: “Plano Pro” ao lado do nome, ou um badge visual.
+* A barra de uso de mensagens deve refletir o novo limite (ex.: “X de 300 mensagens usadas neste mês”).
+* Recursos Pro devem estar desbloqueados:
+
+  * Modelos premium habilitados
+  * Templates avançados visíveis
+  * Organização por projetos e prompts favoritos ativos
+* Mensagens/Gatilhos de upgrade do Free devem deixar de aparecer (ex.: banners, modais Free-only).
+
+**Tarefas técnicas:**
+
+* [Back] Garantir que, após upgrade, `plano_atual` seja `"pro"` e `limite_mensagens` seja atualizado (ex.: 300).
+* [Front] Em componentes de UI:
+
+  * Exibir badge “Plano Pro” quando `plano_atual == "pro"`.
+  * Usar `limite_mensagens` retornado pelo backend para a barra de uso.
+  * Remover/ocultar componentes de upgrade agressivo quando o plano for Pro.
+* [Front] Liberar botões e funcionalidades marcadas como Pro quando `plano_atual == "pro"`:
+
+  * Modelos premium
+  * Templates Pro
+  * Funções avançadas (pastas, prompts favoritos etc.)
+
+---

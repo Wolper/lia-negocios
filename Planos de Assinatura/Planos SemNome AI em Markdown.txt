@@ -1,0 +1,9 @@
+## Planos
+
+Da curiosidade ao uso profissional: comece grátis e evolua para um plano que acompanha o crescimento do seu negócio.
+
+| Plano | Para quem | Benefícios principais | Preço |
+| --- | --- | --- | --- |
+| **Free – Starter** | Quem está começando com IA | Chat com IA em português, modelo rápido/econômico, 5–10 templates de marketing, histórico básico, até **50 mensagens/mês** | **R$ 0/mês** |
+| **Pro – Profissional** | Empreendedores e criadores de conteúdo | Tudo do Free + modelos premium, até **300 mensagens/mês**, templates avançados, histórico ampliado (até 12 meses), projetos/clientes, prompts favoritos, suporte priorizado | **R$ 39,90/mês** (lançamento R$ 29,90/mês) |
+| **Business – Time & Agência** | Times, agências e empresas | Tudo do Pro + até 3 usuários, **cota ampliada** de mensagens (ex.: 1.000/mês), organização avançada por cliente, visão consolidada de uso, suporte prioritário | **A partir de R$ 99,90/mês** |
