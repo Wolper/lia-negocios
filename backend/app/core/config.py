@@ -23,8 +23,7 @@ def get_settings() -> Settings:
     settings = Settings()
     # Permitir string única em vez de lista no .env
     if isinstance(settings.BACKEND_CORS_ORIGINS, str):
-        origins = [
-            o.strip() for o in settings.BACKEND_CORS_ORIGINS.split(",") if o.strip()
-        ]
+        origins = [o.strip()
+                   for o in settings.BACKEND_CORS_ORIGINS.split(",") if o.strip()]
         settings.BACKEND_CORS_ORIGINS = origins
     return settings

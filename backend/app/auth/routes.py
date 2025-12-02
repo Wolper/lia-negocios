@@ -82,7 +82,8 @@ def login(
 @router.post("/refresh", response_model=schemas.TokenPair)
 def refresh_token(
     response: Response,
-    refresh_token: str | None = Cookie(default=None, alias=COOKIE_REFRESH_NAME),
+    refresh_token: str | None = Cookie(
+        default=None, alias=COOKIE_REFRESH_NAME),
 ):
     if not refresh_token:
         raise HTTPException(
