@@ -1,37 +1,56 @@
-# backend/app/auth/service.py
-from typing import Optional
-
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from fastapi import HTTPException, status
 
 from app.auth import models, schemas
 from app.core.security import hash_password, verify_password
 
 
-def get_user_by_email(db: Session, email: str) -> Optional[models.User]:
-    return db.query(models.User).filter(models.User.email == email).first()
+def create_user(db: Session, user_data: schemas.UserCreate):
+    """
+    Cria um novo usuário no banco.
+    """
+    # Verifica se o email já existe
+    existing_user = db.query(models.User).filter(models.User.email == user_data.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="E-mail já está em uso."
+        )
 
+    # Criptografa senha com truncamento seguro
+    hashed = hash_password(user_data.password)
 
-def create_user(db: Session, user_in: schemas.UserCreate) -> models.User:
-    user = models.User(
-        email=user_in.email,
-        hashed_password=hash_password(user_in.password),
+    new_user = models.User(
+        email=user_data.email,
+        hashed_password=hashed,
+        plan="free",           # plano padrão
+        message_count=0        # contador padrão
     )
-    db.add(user)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise ValueError("Email already registered")
 
-    db.refresh(user)
-    return user
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
 
 
-def authenticate_user(db: Session, email: str, password: str) -> Optional[models.User]:
-    user = get_user_by_email(db, email)
+def authenticate_user(db: Session, email: str, password: str):
+    """
+    Verifica se o usuário existe e se a senha é válida.
+    """
+    user = db.query(models.User).filter(models.User.email == email).first()
+
     if not user:
         return None
+
     if not verify_password(password, user.hashed_password):
         return None
+
     return user
+
+
+def get_user_by_id(db: Session, user_id: int):
+    """
+    Busca um usuário pelo ID.
+    """
+    return db.query(models.User).filter(models.User.id == user_id).first()

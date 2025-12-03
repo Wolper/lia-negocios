@@ -9,13 +9,18 @@ from app.core.config import get_settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Limite real do bcrypt em bytes. Aqui usamos 72 chars como aproximação segura.
+MAX_PASSWORD_LENGTH = 72
+
 
 def hash_password(plain_password: str) -> str:
+    print(">>> hash_password FOI CHAMADO <<<")
+    plain_password = plain_password[:72]  # TRUNCAMENTO
     return pwd_context.hash(plain_password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password[:72], hashed_password)
 
 
 def create_token(data: Dict[str, Any], expires_delta: timedelta) -> str:
