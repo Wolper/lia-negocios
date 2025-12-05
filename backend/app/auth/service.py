@@ -1,37 +1,43 @@
-# backend/app/auth/service.py
-from typing import Optional
-
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from passlib.context import CryptContext
 
-from app.auth import models, schemas
-from app.core.security import hash_password, verify_password
+from app.auth.models import User
+from app.auth.schemas import UserCreate
 
-
-def get_user_by_email(db: Session, email: str) -> Optional[models.User]:
-    return db.query(models.User).filter(models.User.email == email).first()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def create_user(db: Session, user_in: schemas.UserCreate) -> models.User:
-    user = models.User(
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password[:72])
+
+
+def verify_password(plain: str, hashed: str):
+    return pwd_context.verify(plain[:72], hashed)
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+
+def create_user(db: Session, user_in: UserCreate):
+    hashed_password = hash_password(user_in.password)
+    user = User(
         email=user_in.email,
-        hashed_password=hash_password(user_in.password),
+        hashed_password=hashed_password,
+        plan="free",
     )
     db.add(user)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise ValueError("Email already registered")
-
+    db.commit()
     db.refresh(user)
     return user
 
 
-def authenticate_user(db: Session, email: str, password: str) -> Optional[models.User]:
+def authenticate_user(db: Session, email: str, password: str):
     user = get_user_by_email(db, email)
     if not user:
-        return None
+        return False
+
     if not verify_password(password, user.hashed_password):
-        return None
+        return False
+
     return user
